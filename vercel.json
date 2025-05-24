@@ -1,1 +1,18 @@
-{  "functions": {    "api/analyze.js": {      "maxDuration": 30    }  }} 
+{
+  "buildCommand": "echo 'No build required - static site'",
+  "outputDirectory": ".",
+  "rewrites": [
+    {
+      "source": "/resume-analysis",
+      "destination": "/resume-analysis.html"
+    }
+  ],
+  "functions": {
+    "api/analyze.js": {
+      "maxDuration": 30
+    },
+    "api/analyze-resume.js": {
+      "maxDuration": 30
+    }
+  }
+} 
