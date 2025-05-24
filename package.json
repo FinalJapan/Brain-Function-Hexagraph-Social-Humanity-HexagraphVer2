@@ -1,0 +1,23 @@
+{
+  "name": "brain-function-social-humanity-hexagraph",
+  "version": "1.0.0",
+  "description": "Brain Function & Social Humanity Hexagraph Analysis Application",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build required'",
+    "start": "echo 'Static site'"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ai",
+    "gemini",
+    "hexagraph",
+    "brain-function",
+    "social-analysis"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+} 
