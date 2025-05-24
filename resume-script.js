@@ -33,9 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // テキスト入力の変更監視
     resumeText.addEventListener('input', checkFormValidity);
     
-    // 名前入力の変更監視
-    document.getElementById('resumeUserName').addEventListener('input', checkFormValidity);
-
     // フォーム送信処理
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -232,26 +229,17 @@ function removeFile(index) {
 
 // フォームの有効性チェック
 function checkFormValidity() {
-    const userName = document.getElementById('resumeUserName').value.trim();
     const manualText = document.getElementById('resumeText').value.trim();
     const hasFiles = uploadedFiles.length > 0;
     const hasContent = hasFiles || manualText.length > 0;
     
     const analyzeBtn = document.getElementById('analyzeBtn');
-    analyzeBtn.disabled = !(userName && hasContent);
+    analyzeBtn.disabled = !hasContent;
 }
 
 // フォーム送信処理
 async function handleFormSubmit() {
-    const userName = document.getElementById('resumeUserName').value.trim();
     const manualText = document.getElementById('resumeText').value.trim();
-    
-    if (!userName) {
-        alert('お名前を入力してください。');
-        return;
-    }
-    
-    currentUserName = userName;
     
     // テキストを結合
     let combinedText = '';
@@ -282,6 +270,9 @@ async function handleFormSubmit() {
         // 履歴書を分析
         const analysis = await analyzeResume(combinedText);
         console.log('Resume analysis completed:', analysis);
+        
+        // APIから抽出された名前をグローバル変数に保存
+        currentUserName = analysis.extractedName || '分析対象者';
         
         // 結果を表示
         displayResults(analysis);
@@ -363,13 +354,13 @@ function displayResults(analysis) {
     
     // 結果タイトルを名前付きに更新
     const resultsTitle = document.getElementById('resultsTitle');
-    if (currentUserName) {
+    if (currentUserName && currentUserName !== '分析対象者') {
         resultsTitle.textContent = `${currentUserName}さんの社会的能力分析結果`;
     } else {
         resultsTitle.textContent = '社会的能力分析結果';
     }
     
-    // 社会的能力グラフを描画（抹茶色）
+    // 社会的能力グラフを描画（濃い目のスカイブルー）
     const socialCtx = document.getElementById('socialChart').getContext('2d');
     const socialData = {
         labels: [
@@ -390,15 +381,15 @@ function displayResults(analysis) {
                 analysis.socialScores.empathy,
                 analysis.socialScores.mental
             ],
-            backgroundColor: 'rgba(76, 140, 74, 0.15)',
-            borderColor: 'rgba(76, 140, 74, 0.8)',
+            backgroundColor: 'rgba(65, 105, 175, 0.15)',
+            borderColor: 'rgba(65, 105, 175, 0.8)',
             borderWidth: 3,
-            pointBackgroundColor: 'rgba(76, 140, 74, 1)',
+            pointBackgroundColor: 'rgba(65, 105, 175, 1)',
             pointBorderColor: '#fff',
             pointBorderWidth: 2,
             pointRadius: 5,
             pointHoverBackgroundColor: '#fff',
-            pointHoverBorderColor: 'rgba(76, 140, 74, 1)',
+            pointHoverBorderColor: 'rgba(65, 105, 175, 1)',
             pointHoverBorderWidth: 3,
             pointHoverRadius: 7
         }]
@@ -474,7 +465,16 @@ function downloadChart() {
     ctx.font = 'bold 24px Arial';
     ctx.fillStyle = '#1f2937';
     ctx.textAlign = 'center';
-    const title = currentUserName ? `${currentUserName}さんの社会的能力分析結果` : '社会的能力分析結果';
+    
+    let title, fileName;
+    if (currentUserName && currentUserName !== '分析対象者') {
+        title = `${currentUserName}さんの社会的能力分析結果`;
+        fileName = `${currentUserName}_social_ability_analysis.png`;
+    } else {
+        title = '社会的能力分析結果';
+        fileName = 'social_ability_analysis.png';
+    }
+    
     ctx.fillText(title, tempCanvas.width / 2, 40);
     
     // チャートを描画
@@ -485,7 +485,6 @@ function downloadChart() {
     
     // 画像としてダウンロード
     const link = document.createElement('a');
-    const fileName = currentUserName ? `${currentUserName}_social_ability_analysis.png` : 'social_ability_analysis.png';
     link.download = fileName;
     link.href = tempCanvas.toDataURL();
     link.click();
