@@ -314,17 +314,40 @@ async function analyzeResume(resumeText) {
         });
 
         console.log('API response status:', response.status);
+        console.log('API response headers:', response.headers);
+
+        // レスポンスのテキストを取得
+        const responseText = await response.text();
+        console.log('Raw API response text:', responseText);
 
         if (!response.ok) {
-            const errorData = await response.json();
-            console.error('API Error Response:', errorData);
+            console.error('API Error - Status:', response.status);
+            console.error('API Error - Response:', responseText);
             
-            const errorMessage = errorData.error || '履歴書分析でエラーが発生しました';
-            throw new Error(`API Error: ${response.status} - ${errorMessage}`);
+            let errorMessage = '履歴書分析でエラーが発生しました';
+            
+            // JSONエラーレスポンスを試行
+            try {
+                const errorData = JSON.parse(responseText);
+                errorMessage = errorData.error || errorMessage;
+            } catch (parseError) {
+                console.error('Error parsing error response:', parseError);
+                errorMessage = `API Error (${response.status}): ${responseText.substring(0, 100)}...`;
+            }
+            
+            throw new Error(errorMessage);
         }
 
-        const data = await response.json();
-        console.log('Resume analysis result:', data);
+        // JSONレスポンスを解析
+        let data;
+        try {
+            data = JSON.parse(responseText);
+            console.log('Parsed resume analysis result:', data);
+        } catch (parseError) {
+            console.error('JSON parsing error:', parseError);
+            console.error('Response text that failed to parse:', responseText);
+            throw new Error(`分析結果の解析に失敗しました。サーバーからの応答: ${responseText.substring(0, 200)}...`);
+        }
         
         return data;
         
