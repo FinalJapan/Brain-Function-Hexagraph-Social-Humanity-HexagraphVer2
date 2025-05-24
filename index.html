@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brain Function & Social Humanity Hexagraph</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="shortcut icon" href="favicon.svg">
+    <link rel="apple-touch-icon" href="favicon.svg">
+    
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Brain Function & Social Humanity Hexagraph</h1>
+            <p class="subtitle">あなたの脳機能と社会的能力を可視化します</p>
+        </header>
+
+        <main>
+            <!-- 質問フォームセクション -->
+            <section id="questionnaire" class="questionnaire-section">
+                <!-- 名前入力とリンクのコンテナ -->
+                <div class="input-options-container">
+                    <!-- 名前入力フォーム -->
+                    <div class="name-input-section">
+                        <label for="userName">お名前</label>
+                        <input type="text" id="userName" name="userName" placeholder="分析結果に表示する名前を入力してください" required>
+                    </div>
+                    
+                    <!-- 履歴書分析リンク -->
+                    <div class="resume-analysis-link-section">
+                        <div class="alternative-option">
+                            <h4>経歴をお持ちの方</h4>
+                            <a href="resume-analysis.html" class="resume-link">
+                                📄 履歴書・職務経歴書から分析
+                                <span class="link-description">より詳細な社会的能力分析</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <h2>12の質問に答えてください</h2>
+                <p class="instruction">以下の質問に自由記述でお答えください。回答内容から、あなたの脳機能と社会的能力を分析します。</p>
+                
+                <form id="questionForm">
+                    <!-- 脳機能に関する質問 -->
+                    <div class="question-group">
+                        <h3>脳機能に関する質問</h3>
+                        
+                        <div class="question">
+                            <label for="q1">1. あなたが「自然と覚えてしまう」ことや、記憶に強く残りやすいものは何ですか？<br>
+                            <small>（例：人の顔、数字、物語、体験、映像など）</small></label>
+                            <textarea id="q1" name="q1" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="question">
+                            <label for="q2">2. 困難な課題や問題に直面したとき、どのように考えて・どんな手順で解決しようとしますか？<br>
+                            <small>（論理的な手順・直感・相談・計画を立てる…など具体的に）</small></label>
+                            <textarea id="q2" name="q2" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="question">
+                            <label for="q3">3. 最近、強く感情が動いたエピソード（嬉しい・悲しい・イラっとした等）と、その時どう行動しましたか？</label>
+                            <textarea id="q3" name="q3" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="question">
+                            <label for="q4">4. 日常生活で「よく身体を動かしている」場面や、無意識に取る動作・ルーティンは何ですか？</label>
+                            <textarea id="q4" name="q4" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="question">
+                            <label for="q5">5. 映像・音・デザイン・音楽など五感に関するもので、特に惹かれるものや集中してしまうことは何ですか？</label>
+                            <textarea id="q5" name="q5" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="question">
+                            <label for="q6">6. 「気づいたらやってしまう行動」や「直感で即決したこと」のエピソードを教えてください。</label>
+                            <textarea id="q6" name="q6" rows="3" required></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- 社会的能力に関する質問 -->
+                    <div class="question-group">
+                        <h3>社会的能力に関する質問</h3>
+                        
+                        <div class="question">
+                            <label for="q7">7. 人と会話するとき、自然とどんな立ち振る舞い・言葉かけをすることが多いですか？</label>
+                            <textarea id="q7" name="q7" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="question">
+                            <label for="q8">8. グループやチームで活動したとき、どんな役割や立ち位置になることが多いですか？</label>
+                            <textarea id="q8" name="q8" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="question">
+                            <label for="q9">9. 最近、自分から新しいことを始めたり、変化に適応した経験を教えてください。</label>
+                            <textarea id="q9" name="q9" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="question">
+                            <label for="q10">10. 毎日または定期的に行っているルーティンや、自然にできている自己管理の工夫はありますか？</label>
+                            <textarea id="q10" name="q10" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="question">
+                            <label for="q11">11. 他人の気持ちや状況を察して行動した経験や、気遣い・共感を自然に表現できたエピソードは？</label>
+                            <textarea id="q11" name="q11" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="question">
+                            <label for="q12">12. ストレスや疲れを感じた時、無意識にしている気分転換やリセット方法があれば教えてください。</label>
+                            <textarea id="q12" name="q12" rows="3" required></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- 注意事項 -->
+                    <div class="info-section">
+                        <p class="info-text">※分析には数秒程度かかる場合があります。</p>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">分析を開始する</button>
+                </form>
+            </section>
+            
+            <!-- 結果表示セクション -->
+            <section id="results" class="results-section" style="display: none;">
+                <h2 id="resultsTitle">分析結果</h2>
+                
+                <!-- グラフ表示エリア -->
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <h3>脳機能ヘキサグラフ</h3>
+                        <canvas id="brainChart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3>社会的能力ヘキサグラフ</h3>
+                        <canvas id="socialChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- 解説表示エリア -->
+                <div class="analysis-container">
+                    <div class="analysis-section">
+                        <h3>脳機能分析</h3>
+                        <div id="brainAnalysis" class="analysis-content"></div>
+                    </div>
+                    <div class="analysis-section">
+                        <h3>社会的能力分析</h3>
+                        <div id="socialAnalysis" class="analysis-content"></div>
+                    </div>
+                </div>
+                
+                <!-- 結果ダウンロードボタン -->
+                <div class="download-section">
+                    <button id="downloadBtn" class="download-btn">結果を画像でダウンロード</button>
+                    <button id="newAnalysisBtn" class="new-analysis-btn">新しい分析を行う</button>
+                </div>
+            </section>
+        </main>
+        
+        <!-- ローディング表示 -->
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>分析中です...</p>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
