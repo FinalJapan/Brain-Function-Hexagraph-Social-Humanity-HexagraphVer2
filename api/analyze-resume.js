@@ -76,6 +76,7 @@ export default async function handler(req, res) {
         // 履歴書分析用プロンプト
         const prompt = `
 以下の履歴書・職務経歴書の内容を分析し、社会的能力を6つの分野で評価してください。
+また、文書から名前を抽出してください。
 各分野を1-5の数値で評価し、詳細な分析結果も含めてください。
 
 【履歴書・職務経歴書内容】
@@ -84,6 +85,7 @@ ${resumeText}
 以下のJSON形式で正確に応答してください（他の文章は含めず、JSONのみ）：
 
 {
+    "extractedName": "履歴書から抽出した名前（見つからない場合は空文字列）",
     "socialScores": {
         "communication": [1-5の数値],
         "leadership": [1-5の数値],
@@ -103,6 +105,11 @@ ${resumeText}
 - selfManagement (セルフマネジメント): 継続的なキャリア構築、目標達成、時間管理等
 - empathy (対人理解・共感力): 顧客対応、サービス業経験、教育・指導経験等
 - mental (メンタル): 困難な状況での継続、挑戦的な取り組み、ストレス耐性等
+
+【名前抽出について】
+- 履歴書の冒頭や署名部分、「氏名」「名前」という項目から名前を特定してください
+- 姓名の両方または片方のみでも構いません
+- 確実に名前と特定できない場合は空文字列を返してください
 
 ※経歴の長さ、職種、実績を総合的に判断し、現実的な評価をしてください。
 ※分析文章は具体的な経歴に基づいた説得力のある内容にしてください。
@@ -218,8 +225,15 @@ ${resumeText}
             analysis.careerSummary = '提供された経歴情報に基づいて社会的能力を分析しました。';
         }
         
+        // extractedNameがない場合はデフォルト値を設定
+        if (!analysis.extractedName) {
+            analysis.extractedName = '';
+        }
+        
         console.log('Resume analysis completed successfully');
         console.log('Analysis result preview:', {
+            hasName: !!analysis.extractedName,
+            extractedName: analysis.extractedName,
             hasScores: !!analysis.socialScores,
             hasAnalysis: !!analysis.socialAnalysis,
             hasSummary: !!analysis.careerSummary
