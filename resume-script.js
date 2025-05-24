@@ -4,7 +4,7 @@ let currentUserName = '';
 let uploadedFiles = [];
 let extractedTexts = [];
 
-// DOMが読み込まれたら初期化
+// DOMが読み込まれたら初期化する
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Resume analysis page loaded, initializing...');
     
