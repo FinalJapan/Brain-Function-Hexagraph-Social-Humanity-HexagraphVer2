@@ -1,5 +1,3 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
 // CORS ヘッダーを設定する関数
 function setCorsHeaders(res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,8 +7,8 @@ function setCorsHeaders(res) {
 
 // JSONレスポンスを安全に解析する関数
 function extractJSON(text) {
-    // コードブロックやマークダウンを除去
-    let cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    // マークダウンのコードブロックを除去
+    let cleanText = text.replace(/```json\s*/g, '').replace(/\s*```/g, '').trim();
     
     // JSON部分を抽出
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
@@ -27,7 +25,9 @@ function extractJSON(text) {
     }
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
+    console.log('=== Resume Analysis API Called ===');
+    
     // CORS設定
     setCorsHeaders(res);
     
@@ -44,24 +44,34 @@ module.exports = async (req, res) => {
     }
     
     try {
+        console.log('Request method:', req.method);
+        console.log('Request body exists:', !!req.body);
+        
         const { resumeText } = req.body;
         
         if (!resumeText || typeof resumeText !== 'string') {
+            console.log('Invalid resumeText:', { hasResumeText: !!resumeText, type: typeof resumeText });
             res.status(400).json({ error: '履歴書・職務経歴書のテキストが必要です' });
             return;
         }
         
+        console.log('Resume text length:', resumeText.length);
+        
         // Gemini API key のチェック
         const apiKey = process.env.GEMINI_API_KEY;
+        console.log('API key exists:', !!apiKey);
+        console.log('API key length:', apiKey ? apiKey.length : 0);
+        
         if (!apiKey) {
-            console.error('GEMINI_API_KEY is not set');
-            res.status(500).json({ error: 'API key not configured' });
+            console.error('GEMINI_API_KEY is not set in environment variables');
+            res.status(500).json({ 
+                error: 'API key not configured',
+                details: 'GEMINI_API_KEY environment variable is missing'
+            });
             return;
         }
         
-        // Google Generative AI の初期化
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+        const model = 'gemini-2.0-flash';
         
         // 履歴書分析用プロンプト
         const prompt = `
@@ -99,22 +109,90 @@ ${resumeText}
 `;
         
         console.log('Sending resume analysis request to Gemini API...');
+        console.log('Prompt length:', prompt.length);
         
-        // Gemini API リクエスト
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        // Gemini API リクエスト（REST API形式）
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 2048
+                }
+            })
+        });
+
+        console.log('Gemini API response status:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Gemini API Error:', errorText);
+            
+            let errorMessage = 'AI API呼び出しに失敗しました';
+            try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.error?.message || errorMessage;
+            } catch (e) {
+                // JSON解析に失敗した場合はそのまま
+            }
+            
+            res.status(502).json({ 
+                error: errorMessage,
+                details: errorText.substring(0, 500)
+            });
+            return;
+        }
+
+        const data = await response.json();
+        console.log('Gemini API call completed');
         
-        console.log('Raw Gemini API response:', text);
+        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+            console.error('Invalid API response structure:', data);
+            res.status(502).json({ 
+                error: 'AIからの応答が不正です',
+                details: 'No valid content in response'
+            });
+            return;
+        }
+
+        let responseText = data.candidates[0].content.parts[0].text;
+        console.log('Response text length:', responseText.length);
+        console.log('Raw Gemini API response:', responseText.substring(0, 500) + '...');
         
         // JSONを抽出・解析
-        const analysis = extractJSON(text);
+        let analysis;
+        try {
+            analysis = extractJSON(responseText);
+            console.log('JSON extraction successful');
+        } catch (jsonError) {
+            console.error('JSON extraction failed:', jsonError);
+            res.status(502).json({ 
+                error: '分析結果の解析に失敗しました',
+                details: jsonError.message,
+                rawResponse: responseText.substring(0, 1000)
+            });
+            return;
+        }
         
         // 必須フィールドの検証
         const requiredFields = ['socialScores', 'socialAnalysis'];
         for (const field of requiredFields) {
             if (!(field in analysis)) {
-                throw new Error(`Missing required field: ${field}`);
+                console.error(`Missing required field: ${field}`);
+                res.status(502).json({ 
+                    error: '分析結果の形式が正しくありません',
+                    details: `Missing required field: ${field}`,
+                    analysis: analysis
+                });
+                return;
             }
         }
         
@@ -125,7 +203,13 @@ ${resumeText}
                 typeof analysis.socialScores[score] !== 'number' ||
                 analysis.socialScores[score] < 1 || 
                 analysis.socialScores[score] > 5) {
-                throw new Error(`Invalid score for ${score}`);
+                console.error(`Invalid score for ${score}:`, analysis.socialScores[score]);
+                res.status(502).json({ 
+                    error: '分析結果のスコアが正しくありません',
+                    details: `Invalid score for ${score}`,
+                    scores: analysis.socialScores
+                });
+                return;
             }
         }
         
@@ -134,12 +218,20 @@ ${resumeText}
             analysis.careerSummary = '提供された経歴情報に基づいて社会的能力を分析しました。';
         }
         
-        console.log('Resume analysis completed successfully:', analysis);
+        console.log('Resume analysis completed successfully');
+        console.log('Analysis result preview:', {
+            hasScores: !!analysis.socialScores,
+            hasAnalysis: !!analysis.socialAnalysis,
+            hasSummary: !!analysis.careerSummary
+        });
         
         res.status(200).json(analysis);
         
     } catch (error) {
-        console.error('Resume analysis error:', error);
+        console.error('=== Resume Analysis Error ===');
+        console.error('Error type:', error.constructor.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
         
         let errorMessage = '履歴書分析中にエラーが発生しました';
         let statusCode = 500;
@@ -157,7 +249,8 @@ ${resumeText}
         
         res.status(statusCode).json({ 
             error: errorMessage,
-            details: error.message 
+            details: error.message,
+            type: error.constructor.name
         });
     }
-}; 
+} 
