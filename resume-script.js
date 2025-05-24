@@ -4,10 +4,9 @@ let currentUserName = '';
 let uploadedFiles = [];
 let extractedTexts = [];
 
-// DOMが読み込まれたら初期化する
+// DOMが読み込まれたら初期化
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Resume analysis page loaded, initializing...');
-    
+    // DOM要素の取得
     const form = document.getElementById('resumeForm');
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
@@ -16,32 +15,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const results = document.getElementById('results');
     const downloadBtn = document.getElementById('downloadBtn');
     const newAnalysisBtn = document.getElementById('newAnalysisBtn');
-    const analyzeBtn = document.getElementById('analyzeBtn');
     const resumeText = document.getElementById('resumeText');
 
     // PDF.js設定
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
 
-    // ファイル入力の変更監視
-    fileInput.addEventListener('change', handleFileSelect);
-    
-    // ドラッグ&ドロップイベント
-    uploadArea.addEventListener('dragover', handleDragOver);
-    uploadArea.addEventListener('drop', handleDrop);
-    uploadArea.addEventListener('dragleave', handleDragLeave);
-    
-    // テキスト入力の変更監視
-    resumeText.addEventListener('input', checkFormValidity);
-    
-    // フォーム送信処理
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await handleFormSubmit();
-    });
-
-    // ボタンイベント
-    downloadBtn.addEventListener('click', downloadChart);
-    newAnalysisBtn.addEventListener('click', resetForm);
+    // イベントリスナー設定
+    if (fileInput) fileInput.addEventListener('change', handleFileSelect);
+    if (uploadArea) {
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('drop', handleDrop);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+    }
+    if (resumeText) resumeText.addEventListener('input', checkFormValidity);
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleFormSubmit();
+        });
+    }
+    if (downloadBtn) downloadBtn.addEventListener('click', downloadChart);
+    if (newAnalysisBtn) newAnalysisBtn.addEventListener('click', resetForm);
 
     // 初期状態チェック
     checkFormValidity();
@@ -80,7 +76,7 @@ function handleFileSelect(e) {
 // ファイル処理
 async function processFiles(files) {
     const uploadArea = document.getElementById('uploadArea');
-    uploadArea.classList.add('processing');
+    if (uploadArea) uploadArea.classList.add('processing');
     
     for (const file of files) {
         if (isValidFile(file)) {
@@ -91,7 +87,7 @@ async function processFiles(files) {
         }
     }
     
-    uploadArea.classList.remove('processing');
+    if (uploadArea) uploadArea.classList.remove('processing');
     updateFileList();
     checkFormValidity();
 }
@@ -131,10 +127,8 @@ async function extractTextFromFile(file) {
             text: text
         });
         
-        console.log(`Extracted text from ${file.name}:`, text.substring(0, 200) + '...');
-        
     } catch (error) {
-        console.error(`Error extracting text from ${file.name}:`, error);
+        console.error(`ファイル読み取りエラー: ${file.name}`, error);
         extractedTexts.push({
             fileName: file.name,
             text: `テキスト抽出エラー: ${file.name}`
@@ -144,6 +138,10 @@ async function extractTextFromFile(file) {
 
 // PDFからテキスト抽出
 async function extractTextFromPDF(file) {
+    if (typeof pdfjsLib === 'undefined') {
+        throw new Error('PDF.jsライブラリが読み込まれていません');
+    }
+    
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
     let fullText = '';
@@ -158,10 +156,9 @@ async function extractTextFromPDF(file) {
     return fullText.trim();
 }
 
-// 画像からテキスト抽出（Gemini Vision APIを使用）
+// 画像からテキスト抽出（プレースホルダー）
 async function extractTextFromImage(file) {
     // 実装：Gemini Vision APIでOCR
-    // 現在はプレースホルダー
     return `画像ファイル: ${file.name} (手動でテキストを入力してください)`;
 }
 
@@ -179,6 +176,8 @@ async function extractTextFromText(file) {
 function updateFileList() {
     const fileList = document.getElementById('fileList');
     const uploadedFilesList = document.getElementById('uploadedFiles');
+    
+    if (!fileList || !uploadedFilesList) return;
     
     if (uploadedFiles.length > 0) {
         fileList.style.display = 'block';
@@ -219,27 +218,31 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// ファイル削除
-function removeFile(index) {
+// ファイル削除（グローバル関数として定義）
+window.removeFile = function(index) {
     uploadedFiles.splice(index, 1);
     extractedTexts.splice(index, 1);
     updateFileList();
     checkFormValidity();
-}
+};
 
 // フォームの有効性チェック
 function checkFormValidity() {
-    const manualText = document.getElementById('resumeText').value.trim();
-    const hasFiles = uploadedFiles.length > 0;
-    const hasContent = hasFiles || manualText.length > 0;
-    
+    const manualText = document.getElementById('resumeText');
     const analyzeBtn = document.getElementById('analyzeBtn');
+    
+    if (!manualText || !analyzeBtn) return;
+    
+    const hasFiles = uploadedFiles.length > 0;
+    const hasContent = hasFiles || manualText.value.trim().length > 0;
+    
     analyzeBtn.disabled = !hasContent;
 }
 
 // フォーム送信処理
 async function handleFormSubmit() {
-    const manualText = document.getElementById('resumeText').value.trim();
+    const manualText = document.getElementById('resumeText');
+    if (!manualText) return;
     
     // テキストを結合
     let combinedText = '';
@@ -250,9 +253,10 @@ async function handleFormSubmit() {
     }
     
     // 手動入力テキスト
-    if (manualText) {
+    const inputText = manualText.value.trim();
+    if (inputText) {
         if (combinedText) combinedText += '\n\n';
-        combinedText += manualText;
+        combinedText += inputText;
     }
     
     if (!combinedText.trim()) {
@@ -260,16 +264,17 @@ async function handleFormSubmit() {
         return;
     }
     
-    console.log('Starting resume analysis...', combinedText.substring(0, 200) + '...');
-    
     // ローディング表示
-    document.getElementById('loading').style.display = 'flex';
-    document.getElementById('uploadSection').style.display = 'none';
+    const loading = document.getElementById('loading');
+    const uploadSection = document.getElementById('uploadSection');
+    const results = document.getElementById('results');
+    
+    if (loading) loading.style.display = 'flex';
+    if (uploadSection) uploadSection.style.display = 'none';
     
     try {
         // 履歴書を分析
         const analysis = await analyzeResume(combinedText);
-        console.log('Resume analysis completed:', analysis);
         
         // APIから抽出された名前をグローバル変数に保存
         currentUserName = analysis.extractedName || '分析対象者';
@@ -278,22 +283,20 @@ async function handleFormSubmit() {
         displayResults(analysis);
         
         // 結果セクションを表示
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('results').style.display = 'block';
+        if (loading) loading.style.display = 'none';
+        if (results) results.style.display = 'block';
         
     } catch (error) {
         console.error('分析エラー:', error);
         alert(`分析中にエラーが発生しました: ${error.message}`);
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('uploadSection').style.display = 'block';
+        if (loading) loading.style.display = 'none';
+        if (uploadSection) uploadSection.style.display = 'block';
     }
 }
 
 // 履歴書分析（Gemini API）
 async function analyzeResume(resumeText) {
     try {
-        console.log('Making request to serverless function for resume analysis...');
-        
         const response = await fetch('/api/analyze-resume', {
             method: 'POST',
             headers: {
@@ -304,40 +307,29 @@ async function analyzeResume(resumeText) {
             })
         });
 
-        console.log('API response status:', response.status);
-        console.log('API response headers:', response.headers);
-
-        // レスポンスのテキストを取得
-        const responseText = await response.text();
-        console.log('Raw API response text:', responseText);
-
         if (!response.ok) {
-            console.error('API Error - Status:', response.status);
-            console.error('API Error - Response:', responseText);
-            
+            const responseText = await response.text();
             let errorMessage = '履歴書分析でエラーが発生しました';
             
-            // JSONエラーレスポンスを試行
             try {
                 const errorData = JSON.parse(responseText);
                 errorMessage = errorData.error || errorMessage;
             } catch (parseError) {
-                console.error('Error parsing error response:', parseError);
-                errorMessage = `API Error (${response.status}): ${responseText.substring(0, 100)}...`;
+                errorMessage = `API Error (${response.status})`;
             }
             
             throw new Error(errorMessage);
         }
 
+        const responseText = await response.text();
+        
         // JSONレスポンスを解析
         let data;
         try {
             data = JSON.parse(responseText);
-            console.log('Parsed resume analysis result:', data);
         } catch (parseError) {
             console.error('JSON parsing error:', parseError);
-            console.error('Response text that failed to parse:', responseText);
-            throw new Error(`分析結果の解析に失敗しました。サーバーからの応答: ${responseText.substring(0, 200)}...`);
+            throw new Error('分析結果の解析に失敗しました。');
         }
         
         return data;
@@ -350,18 +342,21 @@ async function analyzeResume(resumeText) {
 
 // 結果表示（社会的能力のみ）
 function displayResults(analysis) {
-    console.log('Displaying resume analysis results:', analysis);
-    
     // 結果タイトルを名前付きに更新
     const resultsTitle = document.getElementById('resultsTitle');
-    if (currentUserName && currentUserName !== '分析対象者') {
-        resultsTitle.textContent = `${currentUserName}さんの社会的能力分析結果`;
-    } else {
-        resultsTitle.textContent = '社会的能力分析結果';
+    if (resultsTitle) {
+        if (currentUserName && currentUserName !== '分析対象者') {
+            resultsTitle.textContent = `${currentUserName}さんの社会的能力分析結果`;
+        } else {
+            resultsTitle.textContent = '社会的能力分析結果';
+        }
     }
     
-    // 社会的能力グラフを描画（濃い目のスカイブルー）
-    const socialCtx = document.getElementById('socialChart').getContext('2d');
+    // 社会的能力グラフを描画
+    const socialChartCanvas = document.getElementById('socialChart');
+    if (!socialChartCanvas) return;
+    
+    const socialCtx = socialChartCanvas.getContext('2d');
     const socialData = {
         labels: [
             'コミュニケーション',
@@ -434,21 +429,31 @@ function displayResults(analysis) {
     if (socialChart) socialChart.destroy();
 
     // 新しいチャートを作成
-    socialChart = new Chart(socialCtx, {
-        type: 'radar',
-        data: socialData,
-        options: chartOptions
-    });
+    if (typeof Chart !== 'undefined') {
+        socialChart = new Chart(socialCtx, {
+            type: 'radar',
+            data: socialData,
+            options: chartOptions
+        });
+    }
 
     // 分析結果を表示
-    document.getElementById('socialAnalysis').innerHTML = `<p>${analysis.socialAnalysis}</p>`;
-    document.getElementById('careerSummary').innerHTML = `<p>${analysis.careerSummary || '経歴に基づく分析結果です。'}</p>`;
+    const socialAnalysisElement = document.getElementById('socialAnalysis');
+    const careerSummaryElement = document.getElementById('careerSummary');
     
-    console.log('Chart created successfully');
+    if (socialAnalysisElement) {
+        socialAnalysisElement.innerHTML = `<p>${analysis.socialAnalysis}</p>`;
+    }
+    if (careerSummaryElement) {
+        careerSummaryElement.innerHTML = `<p>${analysis.careerSummary || '経歴に基づく分析結果です。'}</p>`;
+    }
 }
 
 // チャートを画像としてダウンロード
 function downloadChart() {
+    const socialCanvas = document.getElementById('socialChart');
+    if (!socialCanvas) return;
+    
     // 一時的なキャンバスを作成
     const tempCanvas = document.createElement('canvas');
     const ctx = tempCanvas.getContext('2d');
@@ -478,7 +483,6 @@ function downloadChart() {
     ctx.fillText(title, tempCanvas.width / 2, 40);
     
     // チャートを描画
-    const socialCanvas = document.getElementById('socialChart');
     const chartX = (tempCanvas.width - 600) / 2;
     const chartY = 80;
     ctx.drawImage(socialCanvas, chartX, chartY, 600, 600);
@@ -492,9 +496,13 @@ function downloadChart() {
 
 // フォームリセット
 function resetForm() {
-    document.getElementById('results').style.display = 'none';
-    document.getElementById('uploadSection').style.display = 'block';
-    document.getElementById('resumeForm').reset();
+    const results = document.getElementById('results');
+    const uploadSection = document.getElementById('uploadSection');
+    const form = document.getElementById('resumeForm');
+    
+    if (results) results.style.display = 'none';
+    if (uploadSection) uploadSection.style.display = 'block';
+    if (form) form.reset();
     
     // データクリア
     uploadedFiles = [];
